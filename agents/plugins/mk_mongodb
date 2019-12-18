@@ -16,6 +16,7 @@ import sys
 import time
 import inspect
 import json
+import ConfigParser
 from collections import defaultdict
 from contextlib import contextmanager
 import pymongo  # pylint: disable=import-error
@@ -585,7 +586,23 @@ def section_logwatch(client):
 
 
 def main():
-    client = pymongo.MongoClient(read_preference=pymongo.ReadPreference.SECONDARY)
+    try:
+        MK_CONFDIR = os.environ.get('MK_CONFDIR')
+        configfile = '%s/mk_mongodb.cfg' % MK_CONFDIR
+        configParser = ConfigParser.RawConfigParser()
+        configParser.read(configfile)
+        username = configParser.get('auth', 'username')
+        password = configParser.get('auth', 'password')
+    except:
+        username = None
+        password = None
+
+    client = pymongo.MongoClient(username=username,
+                                 password=password,
+                                 connectTimeoutMS=2000,
+                                 serverSelectionTimeoutMS=2000,
+                                 read_preference=pymongo.ReadPreference.SECONDARY)
+
     try:
         # connecting is lazy, it might fail only now
         server_status = client.admin.command("serverStatus")
